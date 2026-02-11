@@ -1,0 +1,38 @@
+# Visual Studio
+.vs/
+*.user
+*.suo
+*.userosscache
+*.sln.docstates
+
+# Build
+bin/
+obj/
+Debug/
+Release/
+
+# Fichiers générés par Visual Studio
+*.pdb
+*.mdb
+*.cache
+*.log
+
+# Rider / ReSharper
+.idea/
+*.DotSettings.user
+
+# Packages NuGet
+*.nupkg
+packages/
+
+# Fichiers temporaires
+*.tmp
+*.temp
+
+# Fichiers de test
+TestResults/
+
+# Autres
+*.db
+*.bak
+*.swp
