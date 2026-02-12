@@ -32,7 +32,7 @@ namespace AdvancedDevSample.Domain.Entities
         /// <summary>
         /// Calcule le sous-total pour cet élément
         /// </summary>
-        public decimal GetSubTotal() => Quantity * UnitPrice;
+        public decimal GetSubTotal() => UnitPrice * Quantity;
 
         /// <summary>
         /// Met à jour la quantité

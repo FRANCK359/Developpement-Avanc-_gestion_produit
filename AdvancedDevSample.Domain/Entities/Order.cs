@@ -30,6 +30,7 @@ namespace AdvancedDevSample.Domain.Entities
             OrderDate = DateTime.UtcNow;
             Status = OrderStatus.Pending;
             TotalAmount = 0;
+            CreatedAt = DateTime.UtcNow;
 
             AddDomainEvent(new OrderCreatedEvent(this));
         }
@@ -38,7 +39,7 @@ namespace AdvancedDevSample.Domain.Entities
         public OrderStatus Status { get; private set; }
         public decimal TotalAmount { get; private set; }
         public Guid CustomerId { get; private set; }
-        public DateTime CreatedAt { get; private set; } = DateTime.UtcNow; // Ajouté
+        public DateTime CreatedAt { get; private set; }
         public IReadOnlyCollection<OrderItem> OrderItems => _orderItems.AsReadOnly();
 
         /// <summary>
@@ -136,7 +137,7 @@ namespace AdvancedDevSample.Domain.Entities
         /// </summary>
         public void CalculateTotal()
         {
-            TotalAmount = _orderItems.Sum(item => item.GetSubTotal());
+            TotalAmount = _orderItems.Sum(item => item.UnitPrice * item.Quantity);
 
             if (Status == OrderStatus.Pending)
             {

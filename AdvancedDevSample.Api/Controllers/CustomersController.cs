@@ -1,5 +1,6 @@
 ﻿using AdvancedDevSample.Application.DTOs;
 using AdvancedDevSample.Application.Interfaces.Services;
+using AdvancedDevSample.Application.Exceptions;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Logging;
@@ -38,9 +39,15 @@ namespace AdvancedDevSample.Api.Controllers
         {
             _logger.LogInformation("Requête GET pour le client avec l'ID: {CustomerId}", id);
 
-            var customer = await _customerService.GetByIdAsync(id);
-
-            return Ok(customer);
+            try
+            {
+                var customer = await _customerService.GetByIdAsync(id);
+                return Ok(customer);
+            }
+            catch (NotFoundException ex)
+            {
+                return NotFound(new { message = ex.Message });
+            }
         }
 
         [HttpGet("email/{email}")]
@@ -89,9 +96,15 @@ namespace AdvancedDevSample.Api.Controllers
                 return BadRequest(ModelState);
             }
 
-            var customer = await _customerService.CreateAsync(createDto);
-
-            return CreatedAtAction(nameof(GetById), new { id = customer.Id }, customer);
+            try
+            {
+                var customer = await _customerService.CreateAsync(createDto);
+                return CreatedAtAction(nameof(GetById), new { id = customer.Id }, customer);
+            }
+            catch (ValidationException ex)
+            {
+                return BadRequest(new { message = ex.Message });
+            }
         }
 
         [HttpPut("{id:guid}")]
@@ -141,9 +154,15 @@ namespace AdvancedDevSample.Api.Controllers
         {
             _logger.LogInformation("Requête DELETE pour le client: {CustomerId}", id);
 
-            await _customerService.DeleteAsync(id);
-
-            return NoContent();
+            try
+            {
+                await _customerService.DeleteAsync(id);
+                return NoContent();
+            }
+            catch (NotFoundException ex)
+            {
+                return NotFound(new { message = ex.Message });
+            }
         }
     }
 }

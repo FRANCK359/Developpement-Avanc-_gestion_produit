@@ -7,12 +7,12 @@ using Xunit;
 
 namespace AdvancedDevSample.Test.Integration
 {
-    public class ProductsControllerIntegrationTests : IClassFixture<CustomWebApplicationFactory>
+    public class OrdersControllerIntegrationTests : IClassFixture<CustomWebApplicationFactory>
     {
         private readonly HttpClient _clientWithAuth;
         private readonly HttpClient _clientWithoutAuth;
 
-        public ProductsControllerIntegrationTests(CustomWebApplicationFactory factory)
+        public OrdersControllerIntegrationTests(CustomWebApplicationFactory factory)
         {
             // CLIENT SANS AUTHENTIFICATION - Pour tester Unauthorized
             _clientWithoutAuth = factory.CreateClient();
@@ -31,7 +31,7 @@ namespace AdvancedDevSample.Test.Integration
             var client = _clientWithoutAuth;
 
             // ACT
-            var response = await client.GetAsync("/api/products");
+            var response = await client.GetAsync("/api/orders");
 
             // ASSERT
             Assert.Equal(HttpStatusCode.Unauthorized, response.StatusCode);
@@ -44,7 +44,7 @@ namespace AdvancedDevSample.Test.Integration
             var client = _clientWithAuth;
 
             // ACT
-            var response = await client.GetAsync("/api/products");
+            var response = await client.GetAsync("/api/orders");
 
             // ASSERT
             Assert.Equal(HttpStatusCode.OK, response.StatusCode);
@@ -58,7 +58,7 @@ namespace AdvancedDevSample.Test.Integration
             var invalidId = Guid.NewGuid();
 
             // ACT
-            var response = await client.GetAsync($"/api/products/{invalidId}");
+            var response = await client.GetAsync($"/api/orders/{invalidId}");
 
             // ASSERT
             Assert.Equal(HttpStatusCode.NotFound, response.StatusCode);

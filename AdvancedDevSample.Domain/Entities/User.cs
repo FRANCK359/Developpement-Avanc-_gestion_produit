@@ -1,6 +1,7 @@
-﻿using AdvancedDevSample.Domain.Common;
+﻿using System;
+using AdvancedDevSample.Domain.Common;
+using AdvancedDevSample.Domain.Events;
 using AdvancedDevSample.Domain.Exceptions;
-using System;
 
 namespace AdvancedDevSample.Domain.Entities
 {
@@ -35,6 +36,9 @@ namespace AdvancedDevSample.Domain.Entities
             IsActive = true;
             CreatedAt = DateTime.UtcNow;
             LastLoginAt = null;
+
+            // ✅ AJOUT DE L'ÉVÉNEMENT DE CRÉATION
+            AddDomainEvent(new UserCreatedEvent(this));
         }
 
         public string Email { get; private set; }
@@ -49,6 +53,8 @@ namespace AdvancedDevSample.Domain.Entities
         public void UpdateLastLogin()
         {
             LastLoginAt = DateTime.UtcNow;
+            // ✅ AJOUT DE L'ÉVÉNEMENT DE CONNEXION
+            AddDomainEvent(new UserLoggedInEvent(Id));
         }
 
         public void ChangePassword(string newPasswordHash)
@@ -57,27 +63,43 @@ namespace AdvancedDevSample.Domain.Entities
                 throw new DomainException("Le nouveau mot de passe est requis");
 
             PasswordHash = newPasswordHash;
+            // ✅ AJOUT DE L'ÉVÉNEMENT DE CHANGEMENT DE MOT DE PASSE
+            AddDomainEvent(new UserPasswordChangedEvent(Id));
         }
 
         public void UpdateProfile(string firstName, string lastName)
         {
             FirstName = firstName.Trim();
             LastName = lastName.Trim();
+            // ✅ AJOUT DE L'ÉVÉNEMENT DE MISE À JOUR DU PROFIL
+            AddDomainEvent(new UserProfileUpdatedEvent(Id));
         }
 
         public void Activate()
         {
-            IsActive = true;
+            if (!IsActive)
+            {
+                IsActive = true;
+                // ✅ AJOUT DE L'ÉVÉNEMENT D'ACTIVATION
+                AddDomainEvent(new UserActivatedEvent(Id));
+            }
         }
 
         public void Deactivate()
         {
-            IsActive = false;
+            if (IsActive)
+            {
+                IsActive = false;
+                // ✅ AJOUT DE L'ÉVÉNEMENT DE DÉSACTIVATION
+                AddDomainEvent(new UserDeactivatedEvent(Id));
+            }
         }
 
         public void ChangeRole(string newRole)
         {
             Role = newRole;
+            // ✅ AJOUT DE L'ÉVÉNEMENT DE CHANGEMENT DE RÔLE
+            AddDomainEvent(new UserRoleChangedEvent(Id, newRole));
         }
     }
 }
