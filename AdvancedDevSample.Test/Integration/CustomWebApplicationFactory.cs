@@ -6,39 +6,47 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.AspNetCore.Authentication;
 using AdvancedDevSample.Infrastructure.DbContext;
 using AdvancedDevSample.Api;
-using System.Linq;
 
 namespace AdvancedDevSample.Test.Integration
 {
     public class CustomWebApplicationFactory : WebApplicationFactory<Program>
     {
-        protected override void ConfigureWebHost(IWebHostBuilder builder)
+        protected override IHost CreateHost(IHostBuilder builder)
         {
             builder.UseEnvironment("Testing");
 
             builder.ConfigureServices(services =>
             {
-                // Supprimer le DbContext existant
-                var dbContextDescriptor = services.SingleOrDefault(
-                    d => d.ServiceType == typeof(DbContextOptions<AdvancedDevSampleDbContext>));
+                // 1. SUPPRIMER TOUS LES SERVICES EF EXISTANTS
+                var descriptorsToRemove = services
+                    .Where(d => d.ServiceType.Namespace?.Contains("EntityFramework") == true ||
+                               d.ServiceType == typeof(DbContextOptions) ||
+                               d.ServiceType == typeof(DbContextOptions<AdvancedDevSampleDbContext>))
+                    .ToList();
 
-                if (dbContextDescriptor != null)
-                    services.Remove(dbContextDescriptor);
+                foreach (var descriptor in descriptorsToRemove)
+                {
+                    services.Remove(descriptor);
+                }
 
-                // Ajouter InMemoryDatabase
+                // 2. AJOUTER IN-MEMORY DATABASE SANS PROVIDER CONFLIT
                 services.AddDbContext<AdvancedDevSampleDbContext>(options =>
                 {
                     options.UseInMemoryDatabase("TestDatabase");
-                });
+                }, ServiceLifetime.Scoped, ServiceLifetime.Scoped);
 
-                // Supprimer l'authentification JWT réelle
-                var authDescriptor = services.SingleOrDefault(
-                    d => d.ServiceType == typeof(IAuthenticationService));
+                // 3. SUPPRIMER L'AUTHENTIFICATION JWT
+                var authDescriptors = services
+                    .Where(d => d.ServiceType.FullName?.Contains("JwtBearer") == true ||
+                               d.ServiceType.FullName?.Contains("Authentication") == true)
+                    .ToList();
 
-                if (authDescriptor != null)
-                    services.Remove(authDescriptor);
+                foreach (var descriptor in authDescriptors)
+                {
+                    services.Remove(descriptor);
+                }
 
-                // Ajouter l'authentification de test
+                // 4. AJOUTER L'AUTHENTIFICATION DE TEST
                 services.AddAuthentication(options =>
                 {
                     options.DefaultAuthenticateScheme = TestAuthHandler.AuthenticationScheme;
@@ -47,17 +55,54 @@ namespace AdvancedDevSample.Test.Integration
                 })
                 .AddScheme<AuthenticationSchemeOptions, TestAuthHandler>(
                     TestAuthHandler.AuthenticationScheme, options => { });
-
-                // Rebuild service provider
-                var serviceProvider = services.BuildServiceProvider();
-
-                using (var scope = serviceProvider.CreateScope())
-                {
-                    var db = scope.ServiceProvider.GetRequiredService<AdvancedDevSampleDbContext>();
-                    db.Database.EnsureDeleted();
-                    db.Database.EnsureCreated();
-                }
             });
+
+            return base.CreateHost(builder);
+        }
+
+        protected override void ConfigureWebHost(IWebHostBuilder builder)
+        {
+            builder.UseEnvironment("Testing");
+
+            builder.ConfigureServices(services =>
+            {
+                using var scope = services.BuildServiceProvider().CreateScope();
+                var db = scope.ServiceProvider.GetRequiredService<AdvancedDevSampleDbContext>();
+
+                db.Database.EnsureDeleted();
+                db.Database.EnsureCreated();
+
+                InitializeTestData(db);
+            });
+        }
+
+        private void InitializeTestData(AdvancedDevSampleDbContext db)
+        {
+            // Ajouter un fournisseur de test
+            var supplier = new Domain.Entities.Supplier(
+                "Fournisseur Test",
+                "contact@test.com"
+            );
+            db.Suppliers.Add(supplier);
+
+            // Ajouter un client de test
+            var customer = new Domain.Entities.Customer(
+                "Client",
+                "Test",
+                "client.test@example.com"
+            );
+            db.Customers.Add(customer);
+
+            // Ajouter un produit de test
+            var product = new Domain.Entities.Product(
+                "Produit Test",
+                "Description du produit test",
+                99.99m,
+                supplier.Id
+            );
+            db.Products.Add(product);
+
+            db.SaveChanges();
         }
     }
 }

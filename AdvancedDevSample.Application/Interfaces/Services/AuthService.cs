@@ -37,21 +37,10 @@ namespace AdvancedDevSample.Application.Services
         {
             _logger.LogInformation("Tentative d'inscription pour l'email: {Email}", registerDto.Email);
 
-            // Validation des mots de passe
+            // Validation
             if (registerDto.Password != registerDto.ConfirmPassword)
             {
                 throw new ValidationException("Les mots de passe ne correspondent pas");
-            }
-
-            // Validation de l'email
-            if (string.IsNullOrWhiteSpace(registerDto.Email))
-            {
-                throw new ValidationException("L'email est requis");
-            }
-
-            if (!IsValidEmail(registerDto.Email))
-            {
-                throw new ValidationException("L'email n'est pas valide");
             }
 
             // Vérifier si l'email existe déjà
@@ -93,12 +82,6 @@ namespace AdvancedDevSample.Application.Services
         public async Task<AuthResponseDto> LoginAsync(LoginDto loginDto)
         {
             _logger.LogInformation("Tentative de connexion pour l'email: {Email}", loginDto.Email);
-
-            // Validation de l'email
-            if (string.IsNullOrWhiteSpace(loginDto.Email))
-            {
-                throw new ValidationException("L'email est requis");
-            }
 
             // Vérifier si l'utilisateur existe
             var user = await _userRepository.GetByEmailAsync(loginDto.Email);
@@ -143,11 +126,6 @@ namespace AdvancedDevSample.Application.Services
 
         public async Task<UserDto> GetCurrentUserAsync(string email)
         {
-            if (string.IsNullOrWhiteSpace(email))
-            {
-                throw new ValidationException("L'email est requis");
-            }
-
             var user = await _userRepository.GetByEmailAsync(email);
             if (user == null)
             {
@@ -202,19 +180,6 @@ namespace AdvancedDevSample.Application.Services
                 CreatedAt = user.CreatedAt,
                 LastLoginAt = user.LastLoginAt
             };
-        }
-
-        private bool IsValidEmail(string email)
-        {
-            try
-            {
-                var addr = new System.Net.Mail.MailAddress(email);
-                return addr.Address == email;
-            }
-            catch
-            {
-                return false;
-            }
         }
     }
 }

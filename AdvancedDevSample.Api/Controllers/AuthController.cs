@@ -8,7 +8,6 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Logging;
 using AdvancedDevSample.Application.DTOs;
 using AdvancedDevSample.Application.Interfaces.Services;
-using AdvancedDevSample.Application.Exceptions;
 
 namespace AdvancedDevSample.Api.Controllers
 {
@@ -46,16 +45,8 @@ namespace AdvancedDevSample.Api.Controllers
                 return BadRequest(ModelState);
             }
 
-            try
-            {
-                var response = await _authService.RegisterAsync(registerDto);
-                return Ok(response);
-            }
-            catch (ValidationException ex)
-            {
-                _logger.LogWarning("Échec d'inscription: {Message}", ex.Message);
-                return BadRequest(new { message = ex.Message });
-            }
+            var response = await _authService.RegisterAsync(registerDto);
+            return Ok(response);
         }
 
         /// <summary>
@@ -63,7 +54,6 @@ namespace AdvancedDevSample.Api.Controllers
         /// </summary>
         [HttpPost("login")]
         [ProducesResponseType(typeof(AuthResponseDto), StatusCodes.Status200OK)]
-        [ProducesResponseType(StatusCodes.Status400BadRequest)]
         [ProducesResponseType(StatusCodes.Status401Unauthorized)]
         public async Task<ActionResult<AuthResponseDto>> Login([FromBody] LoginDto loginDto)
         {
@@ -74,16 +64,8 @@ namespace AdvancedDevSample.Api.Controllers
                 return BadRequest(ModelState);
             }
 
-            try
-            {
-                var response = await _authService.LoginAsync(loginDto);
-                return Ok(response);
-            }
-            catch (ValidationException ex)
-            {
-                _logger.LogWarning("Échec de connexion: {Message}", ex.Message);
-                return BadRequest(new { message = ex.Message });
-            }
+            var response = await _authService.LoginAsync(loginDto);
+            return Ok(response);
         }
 
         /// <summary>
@@ -93,7 +75,6 @@ namespace AdvancedDevSample.Api.Controllers
         [Authorize]
         [ProducesResponseType(typeof(UserDto), StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status401Unauthorized)]
-        [ProducesResponseType(StatusCodes.Status404NotFound)]
         public async Task<ActionResult<UserDto>> GetCurrentUser()
         {
             var email = User.FindFirst(ClaimTypes.Email)?.Value
@@ -104,15 +85,8 @@ namespace AdvancedDevSample.Api.Controllers
                 return Unauthorized();
             }
 
-            try
-            {
-                var user = await _authService.GetCurrentUserAsync(email);
-                return Ok(user);
-            }
-            catch (NotFoundException)
-            {
-                return NotFound(new { message = "Utilisateur non trouvé" });
-            }
+            var user = await _authService.GetCurrentUserAsync(email);
+            return Ok(user);
         }
 
         /// <summary>

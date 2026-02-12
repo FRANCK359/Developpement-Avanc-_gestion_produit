@@ -1,6 +1,5 @@
 ﻿using AdvancedDevSample.Application.DTOs;
 using AdvancedDevSample.Application.Interfaces.Services;
-using AdvancedDevSample.Application.Exceptions;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Logging;
@@ -42,17 +41,10 @@ namespace AdvancedDevSample.Api.Controllers
         {
             _logger.LogInformation("Requête GET pour le produit avec l'ID: {ProductId}", id);
 
-            try
-            {
-                var product = await _productService.GetByIdAsync(id);
-                return Ok(product);
-            }
-            catch (NotFoundException ex)
-            {
-                return NotFound(new { message = ex.Message });
-            }
-        }
+            var product = await _productService.GetByIdAsync(id);
 
+            return Ok(product);
+        }
 
         /// <summary>
         /// Récupère tous les produits

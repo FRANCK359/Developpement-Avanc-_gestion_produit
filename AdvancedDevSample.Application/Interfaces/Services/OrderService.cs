@@ -28,10 +28,14 @@ namespace AdvancedDevSample.Application.Services
             IProductRepository productRepository,
             ILogger<OrderService> logger)
         {
-            _orderRepository = orderRepository ?? throw new ArgumentNullException(nameof(orderRepository));
-            _customerRepository = customerRepository ?? throw new ArgumentNullException(nameof(customerRepository));
-            _productRepository = productRepository ?? throw new ArgumentNullException(nameof(productRepository));
-            _logger = logger ?? throw new ArgumentNullException(nameof(logger));
+            _orderRepository = orderRepository ??
+                throw new ArgumentNullException(nameof(orderRepository));
+            _customerRepository = customerRepository ??
+                throw new ArgumentNullException(nameof(customerRepository));
+            _productRepository = productRepository ??
+                throw new ArgumentNullException(nameof(productRepository));
+            _logger = logger ??
+                throw new ArgumentNullException(nameof(logger));
         }
 
         public async Task<OrderDto> GetByIdAsync(Guid id)
@@ -41,7 +45,7 @@ namespace AdvancedDevSample.Application.Services
             var order = await _orderRepository.GetByIdAsync(id);
 
             if (order == null)
-                throw new NotFoundException($"Commande avec l'ID {id} non trouvée");
+                throw new NotFoundException($"Commande avec l'ID {id} non trouvé");
 
             return await MapToDtoAsync(order);
         }
@@ -117,9 +121,6 @@ namespace AdvancedDevSample.Application.Services
                     if (product == null)
                         throw new ValidationException($"Produit avec l'ID {item.ProductId} non trouvé");
 
-                    if (!product.IsActive)
-                        throw new ValidationException($"Le produit {product.Name} n'est pas actif");
-
                     order.AddProduct(product, item.Quantity);
                 }
             }
@@ -138,14 +139,11 @@ namespace AdvancedDevSample.Application.Services
 
             var order = await _orderRepository.GetByIdAsync(orderId);
             if (order == null)
-                throw new NotFoundException($"Commande avec l'ID {orderId} non trouvée");
+                throw new NotFoundException($"Commande avec l'ID {orderId} non trouvé");
 
             var product = await _productRepository.GetByIdAsync(addProductDto.ProductId);
             if (product == null)
                 throw new ValidationException($"Produit avec l'ID {addProductDto.ProductId} non trouvé");
-
-            if (!product.IsActive)
-                throw new ValidationException($"Le produit {product.Name} n'est pas actif");
 
             order.AddProduct(product, addProductDto.Quantity);
 
@@ -163,7 +161,7 @@ namespace AdvancedDevSample.Application.Services
 
             var order = await _orderRepository.GetByIdAsync(orderId);
             if (order == null)
-                throw new NotFoundException($"Commande avec l'ID {orderId} non trouvée");
+                throw new NotFoundException($"Commande avec l'ID {orderId} non trouvé");
 
             order.RemoveProduct(productId);
 
@@ -181,7 +179,7 @@ namespace AdvancedDevSample.Application.Services
 
             var order = await _orderRepository.GetByIdAsync(id);
             if (order == null)
-                throw new NotFoundException($"Commande avec l'ID {id} non trouvée");
+                throw new NotFoundException($"Commande avec l'ID {id} non trouvé");
 
             order.Confirm();
 
@@ -199,7 +197,7 @@ namespace AdvancedDevSample.Application.Services
 
             var order = await _orderRepository.GetByIdAsync(id);
             if (order == null)
-                throw new NotFoundException($"Commande avec l'ID {id} non trouvée");
+                throw new NotFoundException($"Commande avec l'ID {id} non trouvé");
 
             order.Cancel();
 
@@ -217,7 +215,7 @@ namespace AdvancedDevSample.Application.Services
 
             var order = await _orderRepository.GetByIdAsync(id);
             if (order == null)
-                throw new NotFoundException($"Commande avec l'ID {id} non trouvée");
+                throw new NotFoundException($"Commande avec l'ID {id} non trouvé");
 
             order.Complete();
 
@@ -235,7 +233,7 @@ namespace AdvancedDevSample.Application.Services
 
             var order = await _orderRepository.GetByIdAsync(id);
             if (order == null)
-                throw new NotFoundException($"Commande avec l'ID {id} non trouvée");
+                throw new NotFoundException($"Commande avec l'ID {id} non trouvé");
 
             await _orderRepository.DeleteAsync(id);
             await _orderRepository.SaveChangesAsync();
@@ -252,8 +250,7 @@ namespace AdvancedDevSample.Application.Services
                 Status = order.Status.ToString(),
                 TotalAmount = order.TotalAmount,
                 CustomerId = order.CustomerId,
-                CustomerName = string.Empty,
-                Items = new List<OrderItemDto>()
+                CustomerName = string.Empty
             };
 
             // Récupérer les détails du client
@@ -264,7 +261,7 @@ namespace AdvancedDevSample.Application.Services
             }
 
             // Récupérer les détails des produits
-            if (order.OrderItems != null && order.OrderItems.Any())
+            if (order.OrderItems != null && order.OrderItems.Count > 0)
             {
                 foreach (var item in order.OrderItems)
                 {
