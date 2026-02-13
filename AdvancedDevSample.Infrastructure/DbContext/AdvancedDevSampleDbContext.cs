@@ -3,6 +3,7 @@ using Microsoft.EntityFrameworkCore.Storage;
 using System.Data;
 using System.Reflection;
 using AdvancedDevSample.Domain.Entities;
+using AdvancedDevSample.Domain.Common;
 
 namespace AdvancedDevSample.Infrastructure.DbContext
 {
@@ -11,11 +12,11 @@ namespace AdvancedDevSample.Infrastructure.DbContext
     /// </summary>
     public class AdvancedDevSampleDbContext : Microsoft.EntityFrameworkCore.DbContext
     {
-        public DbSet<Product> Products { get; set; }
-        public DbSet<Customer> Customers { get; set; }
-        public DbSet<Supplier> Suppliers { get; set; }
-        public DbSet<Order> Orders { get; set; }
-        public DbSet<User> Users { get; set; }
+        public DbSet<Product> Products { get; set; } = null!;
+        public DbSet<Customer> Customers { get; set; } = null!;
+        public DbSet<Supplier> Suppliers { get; set; } = null!;
+        public DbSet<Order> Orders { get; set; } = null!;
+        public DbSet<User> Users { get; set; } = null!;
 
         private IDbContextTransaction? _currentTransaction;
 
@@ -126,17 +127,21 @@ namespace AdvancedDevSample.Infrastructure.DbContext
         public override async Task<int> SaveChangesAsync(CancellationToken cancellationToken = default)
         {
             var domainEntities = ChangeTracker
-                .Entries<Domain.Common.BaseEntity>()
-                .Where(x => x.Entity.DomainEvents?.Any() == true)
+                .Entries<BaseEntity>()
+                .Where(x => x.Entity.DomainEvents != null && x.Entity.DomainEvents.Any())
                 .ToList();
 
             var domainEvents = domainEntities
-                .SelectMany(x => x.Entity.DomainEvents)
+                .SelectMany(x => x.Entity.DomainEvents!)
                 .ToList();
 
             domainEntities.ForEach(entity => entity.Entity.ClearDomainEvents());
 
             var result = await base.SaveChangesAsync(cancellationToken);
+
+            // Optionnel : dispatcher les événements ici
+            // await DispatchEventsAsync(domainEvents);
+
             return result;
         }
 
@@ -147,10 +152,13 @@ namespace AdvancedDevSample.Infrastructure.DbContext
             return _currentTransaction;
         }
 
-        public async Task CommitTransactionAsync(IDbContextTransaction transaction)
+        public async Task CommitTransactionAsync(IDbContextTransaction? transaction)
         {
-            if (transaction == null) throw new ArgumentNullException(nameof(transaction));
-            if (transaction != _currentTransaction) throw new InvalidOperationException($"Transaction {transaction.TransactionId} is not current");
+            if (transaction == null)
+                throw new ArgumentNullException(nameof(transaction));
+
+            if (transaction != _currentTransaction)
+                throw new InvalidOperationException($"Transaction {transaction.TransactionId} is not current");
 
             try
             {
@@ -166,7 +174,7 @@ namespace AdvancedDevSample.Infrastructure.DbContext
             {
                 if (_currentTransaction != null)
                 {
-                    _currentTransaction.Dispose();
+                    await _currentTransaction.DisposeAsync();
                     _currentTransaction = null;
                 }
             }
