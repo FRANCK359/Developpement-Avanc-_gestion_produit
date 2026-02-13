@@ -6,9 +6,7 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Logging;
 using Moq;
 using System;
-using System.Collections.Generic;
 using System.Security.Claims;
-using System.Text;
 using System.Threading.Tasks;
 using Xunit;
 
@@ -52,7 +50,6 @@ namespace AdvancedDevSample.Test.Domain
         public async Task Register_WithNullDto_ReturnsBadRequest()
         {
             var result = await _controller.Register(null!);
-
             Assert.IsType<BadRequestObjectResult>(result.Result);
         }
 
@@ -66,7 +63,6 @@ namespace AdvancedDevSample.Test.Domain
                 .ThrowsAsync(new Exception("Erreur"));
 
             var result = await _controller.Register(dto);
-
             Assert.IsType<BadRequestObjectResult>(result.Result);
         }
 
@@ -98,7 +94,6 @@ namespace AdvancedDevSample.Test.Domain
                 .ThrowsAsync(new UnauthorizedAccessException("Invalid"));
 
             var result = await _controller.Login(dto);
-
             Assert.IsType<UnauthorizedObjectResult>(result.Result);
         }
 
@@ -106,7 +101,6 @@ namespace AdvancedDevSample.Test.Domain
         public async Task Login_WithNullDto_ReturnsBadRequest()
         {
             var result = await _controller.Login(null!);
-
             Assert.IsType<BadRequestObjectResult>(result.Result);
         }
 
@@ -131,7 +125,6 @@ namespace AdvancedDevSample.Test.Domain
         public async Task GetCurrentUser_WithValidUser_ReturnsOk()
         {
             var email = "test@mail.com";
-
             var userDto = new UserDto { Email = email };
 
             _authServiceMock
@@ -155,7 +148,6 @@ namespace AdvancedDevSample.Test.Domain
             };
 
             var result = await _controller.GetCurrentUser();
-
             Assert.IsType<UnauthorizedResult>(result.Result);
         }
 
@@ -164,15 +156,14 @@ namespace AdvancedDevSample.Test.Domain
         {
             var email = "test@mail.com";
 
-            // ✅ Utiliser Task.FromResult<UserDto?>(null) pour éviter l'erreur de nullable
+            // Correction SonarQube : ReturnsAsync avec UserDto? nullable
             _authServiceMock
                 .Setup(s => s.GetCurrentUserAsync(email))
-                .Returns(() => Task.FromResult<UserDto?>(null));
+                .ReturnsAsync((UserDto?)null);
 
             SetUserClaims(email);
 
             var result = await _controller.GetCurrentUser();
-
             Assert.IsType<NotFoundObjectResult>(result.Result);
         }
 
