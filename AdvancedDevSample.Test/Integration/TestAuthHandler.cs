@@ -16,13 +16,17 @@ namespace AdvancedDevSample.Test.Integration
         public TestAuthHandler(
             IOptionsMonitor<AuthenticationSchemeOptions> options,
             ILoggerFactory logger,
-            UrlEncoder encoder,
-            ISystemClock clock) : base(options, logger, encoder, clock)
+            UrlEncoder encoder)
+            : base(options, logger, encoder)
         {
         }
 
         protected override Task<AuthenticateResult> HandleAuthenticateAsync()
         {
+            // Si aucun header Authorization, ne pas authentifier (permet tests WithoutAuth)
+            if (!Request.Headers.ContainsKey("Authorization"))
+                return Task.FromResult(AuthenticateResult.NoResult());
+
             var claims = new[]
             {
                 new Claim(ClaimTypes.NameIdentifier, TestUserId),
@@ -36,8 +40,7 @@ namespace AdvancedDevSample.Test.Integration
             var principal = new ClaimsPrincipal(identity);
             var ticket = new AuthenticationTicket(principal, AuthenticationScheme);
 
-            var result = AuthenticateResult.Success(ticket);
-            return Task.FromResult(result);
+            return Task.FromResult(AuthenticateResult.Success(ticket));
         }
     }
 }
