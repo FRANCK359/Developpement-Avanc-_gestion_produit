@@ -7,9 +7,6 @@ using AdvancedDevSample.Domain.Common;
 
 namespace AdvancedDevSample.Infrastructure.DbContext
 {
-    /// <summary>
-    /// Contexte de base de données pour l'application
-    /// </summary>
     public class AdvancedDevSampleDbContext : Microsoft.EntityFrameworkCore.DbContext
     {
         public DbSet<Product> Products { get; set; } = null!;
@@ -29,7 +26,7 @@ namespace AdvancedDevSample.Infrastructure.DbContext
         {
             base.OnModelCreating(modelBuilder);
 
-            // Configuration pour Product
+            // --- Configuration Product ---
             modelBuilder.Entity<Product>(entity =>
             {
                 entity.HasKey(e => e.Id);
@@ -38,19 +35,16 @@ namespace AdvancedDevSample.Infrastructure.DbContext
                 entity.Property(e => e.Price).HasColumnType("decimal(18,2)").IsRequired();
                 entity.Property(e => e.IsActive).IsRequired();
                 entity.Property(e => e.CreatedAt).IsRequired();
-
                 entity.HasIndex(e => e.Name).IsUnique();
                 entity.HasIndex(e => e.IsActive);
-
                 entity.HasOne<Supplier>()
-                    .WithMany()
-                    .HasForeignKey(e => e.SupplierId)
-                    .OnDelete(DeleteBehavior.Restrict);
-
+                      .WithMany()
+                      .HasForeignKey(e => e.SupplierId)
+                      .OnDelete(DeleteBehavior.Restrict);
                 entity.Ignore(e => e.DomainEvents);
             });
 
-            // Configuration pour Customer
+            // --- Configuration Customer ---
             modelBuilder.Entity<Customer>(entity =>
             {
                 entity.HasKey(e => e.Id);
@@ -59,12 +53,11 @@ namespace AdvancedDevSample.Infrastructure.DbContext
                 entity.Property(e => e.Email).IsRequired().HasMaxLength(200);
                 entity.Property(e => e.IsActive).IsRequired();
                 entity.Property(e => e.CreatedAt).IsRequired();
-
                 entity.HasIndex(e => e.Email).IsUnique();
                 entity.Ignore(e => e.DomainEvents);
             });
 
-            // Configuration pour Supplier
+            // --- Configuration Supplier ---
             modelBuilder.Entity<Supplier>(entity =>
             {
                 entity.HasKey(e => e.Id);
@@ -72,12 +65,11 @@ namespace AdvancedDevSample.Infrastructure.DbContext
                 entity.Property(e => e.ContactEmail).IsRequired().HasMaxLength(200);
                 entity.Property(e => e.IsActive).IsRequired();
                 entity.Property(e => e.CreatedAt).IsRequired();
-
                 entity.HasIndex(e => e.Name).IsUnique();
                 entity.Ignore(e => e.DomainEvents);
             });
 
-            // Configuration pour Order
+            // --- Configuration Order ---
             modelBuilder.Entity<Order>(entity =>
             {
                 entity.HasKey(e => e.Id);
@@ -85,11 +77,10 @@ namespace AdvancedDevSample.Infrastructure.DbContext
                 entity.Property(e => e.Status).IsRequired().HasConversion<int>();
                 entity.Property(e => e.TotalAmount).HasColumnType("decimal(18,2)").IsRequired();
                 entity.Property(e => e.CreatedAt).IsRequired();
-
                 entity.HasOne<Customer>()
-                    .WithMany()
-                    .HasForeignKey(e => e.CustomerId)
-                    .OnDelete(DeleteBehavior.Restrict);
+                      .WithMany()
+                      .HasForeignKey(e => e.CustomerId)
+                      .OnDelete(DeleteBehavior.Restrict);
 
                 entity.OwnsMany(e => e.OrderItems, oi =>
                 {
@@ -106,7 +97,7 @@ namespace AdvancedDevSample.Infrastructure.DbContext
                 entity.Ignore(e => e.DomainEvents);
             });
 
-            // Configuration pour User
+            // --- Configuration User ---
             modelBuilder.Entity<User>(entity =>
             {
                 entity.HasKey(e => e.Id);
@@ -118,7 +109,6 @@ namespace AdvancedDevSample.Infrastructure.DbContext
                 entity.Property(e => e.IsActive).IsRequired();
                 entity.Property(e => e.CreatedAt).IsRequired();
                 entity.Property(e => e.LastLoginAt);
-
                 entity.HasIndex(e => e.Email).IsUnique();
                 entity.Ignore(e => e.DomainEvents);
             });
@@ -128,7 +118,7 @@ namespace AdvancedDevSample.Infrastructure.DbContext
         {
             var domainEntities = ChangeTracker
                 .Entries<BaseEntity>()
-                .Where(x => x.Entity.DomainEvents != null && x.Entity.DomainEvents.Any())
+                .Where(x => x.Entity.DomainEvents?.Count > 0) // ✅ SonarQube friendly
                 .ToList();
 
             var domainEvents = domainEntities
@@ -137,12 +127,7 @@ namespace AdvancedDevSample.Infrastructure.DbContext
 
             domainEntities.ForEach(entity => entity.Entity.ClearDomainEvents());
 
-            var result = await base.SaveChangesAsync(cancellationToken);
-
-            // Optionnel : dispatcher les événements ici
-            // await DispatchEventsAsync(domainEvents);
-
-            return result;
+            return await base.SaveChangesAsync(cancellationToken);
         }
 
         public async Task<IDbContextTransaction?> BeginTransactionAsync()
@@ -190,7 +175,7 @@ namespace AdvancedDevSample.Infrastructure.DbContext
             {
                 if (_currentTransaction != null)
                 {
-                    _currentTransaction.Dispose();
+                    try { _currentTransaction.Dispose(); } catch { /* ignore */ }
                     _currentTransaction = null;
                 }
             }

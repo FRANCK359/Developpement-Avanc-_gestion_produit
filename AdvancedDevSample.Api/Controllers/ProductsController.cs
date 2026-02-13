@@ -35,7 +35,11 @@ namespace AdvancedDevSample.Api.Controllers
         [ProducesResponseType(StatusCodes.Status404NotFound)]
         public async Task<ActionResult<ProductDto>> GetById(Guid id)
         {
-            _logger.LogInformation("Requête GET pour le produit avec l'ID: {ProductId}", id);
+            if (_logger.IsEnabled(LogLevel.Information))
+            {
+                _logger.LogInformation("Requête GET pour le produit avec l'ID: {ProductId}", id);
+            }
+
             try
             {
                 var product = await _productService.GetByIdAsync(id);
@@ -51,7 +55,11 @@ namespace AdvancedDevSample.Api.Controllers
         [ProducesResponseType(typeof(IEnumerable<ProductDto>), StatusCodes.Status200OK)]
         public async Task<ActionResult<IEnumerable<ProductDto>>> GetAll()
         {
-            _logger.LogInformation("Requête GET pour tous les produits");
+            if (_logger.IsEnabled(LogLevel.Information))
+            {
+                _logger.LogInformation("Requête GET pour tous les produits");
+            }
+
             var products = await _productService.GetAllAsync();
             return Ok(products);
         }
@@ -60,7 +68,11 @@ namespace AdvancedDevSample.Api.Controllers
         [ProducesResponseType(typeof(IEnumerable<ProductDto>), StatusCodes.Status200OK)]
         public async Task<ActionResult<IEnumerable<ProductDto>>> GetBySupplier(Guid supplierId)
         {
-            _logger.LogInformation("Requête GET pour les produits du fournisseur: {SupplierId}", supplierId);
+            if (_logger.IsEnabled(LogLevel.Information))
+            {
+                _logger.LogInformation("Requête GET pour les produits du fournisseur: {SupplierId}", supplierId);
+            }
+
             var products = await _productService.GetBySupplierAsync(supplierId);
             return Ok(products);
         }
@@ -69,7 +81,11 @@ namespace AdvancedDevSample.Api.Controllers
         [ProducesResponseType(typeof(IEnumerable<ProductDto>), StatusCodes.Status200OK)]
         public async Task<ActionResult<IEnumerable<ProductDto>>> GetActiveProducts()
         {
-            _logger.LogInformation("Requête GET pour les produits actifs");
+            if (_logger.IsEnabled(LogLevel.Information))
+            {
+                _logger.LogInformation("Requête GET pour les produits actifs");
+            }
+
             var products = await _productService.GetActiveProductsAsync();
             return Ok(products);
         }
@@ -82,9 +98,12 @@ namespace AdvancedDevSample.Api.Controllers
             if (!ModelState.IsValid)
                 return BadRequest(ModelState);
 
-            _logger.LogInformation("Requête POST pour créer un produit: {ProductName}", createDto.Name);
-            var product = await _productService.CreateAsync(createDto);
+            if (_logger.IsEnabled(LogLevel.Information))
+            {
+                _logger.LogInformation("Requête POST pour créer un produit: {ProductName}", createDto.Name);
+            }
 
+            var product = await _productService.CreateAsync(createDto);
             return CreatedAtAction(nameof(GetById), new { id = product.Id }, product);
         }
 
@@ -97,7 +116,11 @@ namespace AdvancedDevSample.Api.Controllers
             if (!ModelState.IsValid)
                 return BadRequest(ModelState);
 
-            _logger.LogInformation("Requête PUT pour mettre à jour le produit: {ProductId}", id);
+            if (_logger.IsEnabled(LogLevel.Information))
+            {
+                _logger.LogInformation("Requête PUT pour mettre à jour le produit: {ProductId}", id);
+            }
+
             try
             {
                 var product = await _productService.UpdateAsync(id, updateDto);
@@ -113,7 +136,11 @@ namespace AdvancedDevSample.Api.Controllers
         [ProducesResponseType(typeof(PriceChangeResponseDto), StatusCodes.Status200OK)]
         public async Task<ActionResult<PriceChangeResponseDto>> ChangePrice(Guid id, [FromBody] decimal priceChange)
         {
-            _logger.LogInformation("Requête PATCH pour changer le prix du produit: {ProductId} à {NewPrice}", id, priceChange);
+            if (_logger.IsEnabled(LogLevel.Information))
+            {
+                _logger.LogInformation("Requête PATCH pour changer le prix du produit: {ProductId} à {NewPrice}", id, priceChange);
+            }
+
             try
             {
                 var product = await _productService.ChangePriceAsync(id, priceChange);
@@ -121,7 +148,7 @@ namespace AdvancedDevSample.Api.Controllers
                 {
                     ProductId = product.Id,
                     NewPrice = product.Price,
-                    OldPrice = product.Price // à ajuster si l'ancien prix est conservé
+                    OldPrice = product.Price
                 };
                 return Ok(response);
             }
@@ -135,7 +162,11 @@ namespace AdvancedDevSample.Api.Controllers
         [ProducesResponseType(typeof(DiscountResponseDto), StatusCodes.Status200OK)]
         public async Task<ActionResult<DiscountResponseDto>> ApplyDiscount(Guid id, [FromBody] decimal discount)
         {
-            _logger.LogInformation("Requête PATCH pour appliquer une remise de {Discount}% sur le produit: {ProductId}", discount * 100, id);
+            if (_logger.IsEnabled(LogLevel.Information))
+            {
+                _logger.LogInformation("Requête PATCH pour appliquer une remise de {Discount}% sur le produit: {ProductId}", discount * 100, id);
+            }
+
             try
             {
                 var product = await _productService.ApplyDiscountAsync(id, discount);
@@ -158,7 +189,11 @@ namespace AdvancedDevSample.Api.Controllers
         [ProducesResponseType(typeof(ProductDto), StatusCodes.Status200OK)]
         public async Task<ActionResult<ProductDto>> Activate(Guid id)
         {
-            _logger.LogInformation("Requête PATCH pour activer le produit: {ProductId}", id);
+            if (_logger.IsEnabled(LogLevel.Information))
+            {
+                _logger.LogInformation("Requête PATCH pour activer le produit: {ProductId}", id);
+            }
+
             try
             {
                 var product = await _productService.ActivateAsync(id);
@@ -174,7 +209,11 @@ namespace AdvancedDevSample.Api.Controllers
         [ProducesResponseType(typeof(ProductDto), StatusCodes.Status200OK)]
         public async Task<ActionResult<ProductDto>> Deactivate(Guid id)
         {
-            _logger.LogInformation("Requête PATCH pour désactiver le produit: {ProductId}", id);
+            if (_logger.IsEnabled(LogLevel.Information))
+            {
+                _logger.LogInformation("Requête PATCH pour désactiver le produit: {ProductId}", id);
+            }
+
             try
             {
                 var product = await _productService.DeactivateAsync(id);
@@ -191,7 +230,11 @@ namespace AdvancedDevSample.Api.Controllers
         [ProducesResponseType(StatusCodes.Status404NotFound)]
         public async Task<IActionResult> Delete(Guid id)
         {
-            _logger.LogInformation("Requête DELETE pour le produit: {ProductId}", id);
+            if (_logger.IsEnabled(LogLevel.Information))
+            {
+                _logger.LogInformation("Requête DELETE pour le produit: {ProductId}", id);
+            }
+
             try
             {
                 await _productService.DeleteAsync(id);
