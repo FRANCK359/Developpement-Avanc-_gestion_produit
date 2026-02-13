@@ -123,13 +123,11 @@ namespace AdvancedDevSample.Infrastructure.DbContext
 
         public override async Task<int> SaveChangesAsync(CancellationToken cancellationToken = default)
         {
-            // CORRECTION 1: Utiliser Count > 0 au lieu de Any() (recommandé SonarQube)
             var domainEntities = ChangeTracker
                 .Entries<BaseEntity>()
                 .Where(x => x.Entity.DomainEvents != null && x.Entity.DomainEvents.Count > 0)
                 .ToList();
 
-            // CORRECTION 2: Vérification null avant SelectMany
             var domainEvents = domainEntities
                 .SelectMany(x => x.Entity.DomainEvents ?? new List<DomainEvent>())
                 .ToList();
@@ -150,8 +148,8 @@ namespace AdvancedDevSample.Infrastructure.DbContext
 
         public async Task CommitTransactionAsync(IDbContextTransaction? transaction)
         {
-            if (transaction == null)
-                throw new ArgumentNullException(nameof(transaction));
+            // CORRECTION 1: Utilisation de ArgumentNullException.ThrowIfNull (recommandé SonarQube)
+            ArgumentNullException.ThrowIfNull(transaction);
 
             if (transaction != _currentTransaction)
                 throw new InvalidOperationException($"Transaction {transaction.TransactionId} is not current");
@@ -163,7 +161,7 @@ namespace AdvancedDevSample.Infrastructure.DbContext
             }
             catch
             {
-                await RollbackTransactionAsync(); // CORRECTION: Version async
+                await RollbackTransactionAsync();
                 throw;
             }
             finally
@@ -176,6 +174,26 @@ namespace AdvancedDevSample.Infrastructure.DbContext
             }
         }
 
+        public async Task RollbackTransactionAsync()
+        {
+            try
+            {
+                if (_currentTransaction != null)
+                {
+                    await _currentTransaction.RollbackAsync();
+                }
+            }
+            finally
+            {
+                if (_currentTransaction != null)
+                {
+                    await _currentTransaction.DisposeAsync();
+                    _currentTransaction = null;
+                }
+            }
+        }
+
+        // Garder la version synchrone pour la compatibilité
         public void RollbackTransaction()
         {
             try
@@ -187,24 +205,6 @@ namespace AdvancedDevSample.Infrastructure.DbContext
                 if (_currentTransaction != null)
                 {
                     _currentTransaction.Dispose();
-                    _currentTransaction = null;
-                }
-            }
-        }
-
-        // CORRECTION: Ajout d'une version async pour Rollback
-        private async Task RollbackTransactionAsync()
-        {
-            try
-            {
-                if (_currentTransaction != null)
-                    await _currentTransaction.RollbackAsync();
-            }
-            finally
-            {
-                if (_currentTransaction != null)
-                {
-                    await _currentTransaction.DisposeAsync();
                     _currentTransaction = null;
                 }
             }
