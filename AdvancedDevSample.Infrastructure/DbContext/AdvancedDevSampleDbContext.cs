@@ -35,12 +35,15 @@ namespace AdvancedDevSample.Infrastructure.DbContext
                 entity.Property(e => e.Price).HasColumnType("decimal(18,2)").IsRequired();
                 entity.Property(e => e.IsActive).IsRequired();
                 entity.Property(e => e.CreatedAt).IsRequired();
+
                 entity.HasIndex(e => e.Name).IsUnique();
                 entity.HasIndex(e => e.IsActive);
+
                 entity.HasOne<Supplier>()
                       .WithMany()
                       .HasForeignKey(e => e.SupplierId)
                       .OnDelete(DeleteBehavior.Restrict);
+
                 entity.Ignore(e => e.DomainEvents);
             });
 
@@ -53,6 +56,7 @@ namespace AdvancedDevSample.Infrastructure.DbContext
                 entity.Property(e => e.Email).IsRequired().HasMaxLength(200);
                 entity.Property(e => e.IsActive).IsRequired();
                 entity.Property(e => e.CreatedAt).IsRequired();
+
                 entity.HasIndex(e => e.Email).IsUnique();
                 entity.Ignore(e => e.DomainEvents);
             });
@@ -65,6 +69,7 @@ namespace AdvancedDevSample.Infrastructure.DbContext
                 entity.Property(e => e.ContactEmail).IsRequired().HasMaxLength(200);
                 entity.Property(e => e.IsActive).IsRequired();
                 entity.Property(e => e.CreatedAt).IsRequired();
+
                 entity.HasIndex(e => e.Name).IsUnique();
                 entity.Ignore(e => e.DomainEvents);
             });
@@ -77,6 +82,7 @@ namespace AdvancedDevSample.Infrastructure.DbContext
                 entity.Property(e => e.Status).IsRequired().HasConversion<int>();
                 entity.Property(e => e.TotalAmount).HasColumnType("decimal(18,2)").IsRequired();
                 entity.Property(e => e.CreatedAt).IsRequired();
+
                 entity.HasOne<Customer>()
                       .WithMany()
                       .HasForeignKey(e => e.CustomerId)
@@ -109,6 +115,7 @@ namespace AdvancedDevSample.Infrastructure.DbContext
                 entity.Property(e => e.IsActive).IsRequired();
                 entity.Property(e => e.CreatedAt).IsRequired();
                 entity.Property(e => e.LastLoginAt);
+
                 entity.HasIndex(e => e.Email).IsUnique();
                 entity.Ignore(e => e.DomainEvents);
             });
@@ -116,13 +123,15 @@ namespace AdvancedDevSample.Infrastructure.DbContext
 
         public override async Task<int> SaveChangesAsync(CancellationToken cancellationToken = default)
         {
+            // CORRECTION 1: Utiliser Count > 0 au lieu de Any() (recommandé SonarQube)
             var domainEntities = ChangeTracker
                 .Entries<BaseEntity>()
-                .Where(x => x.Entity.DomainEvents?.Count > 0) // ✅ SonarQube friendly
+                .Where(x => x.Entity.DomainEvents != null && x.Entity.DomainEvents.Count > 0)
                 .ToList();
 
+            // CORRECTION 2: Vérification null avant SelectMany
             var domainEvents = domainEntities
-                .SelectMany(x => x.Entity.DomainEvents!)
+                .SelectMany(x => x.Entity.DomainEvents ?? new List<DomainEvent>())
                 .ToList();
 
             domainEntities.ForEach(entity => entity.Entity.ClearDomainEvents());
@@ -132,7 +141,9 @@ namespace AdvancedDevSample.Infrastructure.DbContext
 
         public async Task<IDbContextTransaction?> BeginTransactionAsync()
         {
-            if (_currentTransaction != null) return null;
+            if (_currentTransaction != null)
+                return null;
+
             _currentTransaction = await Database.BeginTransactionAsync(IsolationLevel.ReadCommitted);
             return _currentTransaction;
         }
@@ -152,7 +163,7 @@ namespace AdvancedDevSample.Infrastructure.DbContext
             }
             catch
             {
-                RollbackTransaction();
+                await RollbackTransactionAsync(); // CORRECTION: Version async
                 throw;
             }
             finally
@@ -175,7 +186,25 @@ namespace AdvancedDevSample.Infrastructure.DbContext
             {
                 if (_currentTransaction != null)
                 {
-                    try { _currentTransaction.Dispose(); } catch { /* ignore */ }
+                    _currentTransaction.Dispose();
+                    _currentTransaction = null;
+                }
+            }
+        }
+
+        // CORRECTION: Ajout d'une version async pour Rollback
+        private async Task RollbackTransactionAsync()
+        {
+            try
+            {
+                if (_currentTransaction != null)
+                    await _currentTransaction.RollbackAsync();
+            }
+            finally
+            {
+                if (_currentTransaction != null)
+                {
+                    await _currentTransaction.DisposeAsync();
                     _currentTransaction = null;
                 }
             }
