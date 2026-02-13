@@ -1,11 +1,8 @@
 ﻿using AdvancedDevSample.Application.Exceptions;
 using AdvancedDevSample.Domain.Exceptions;
-using Microsoft.AspNetCore.Http;
-using Microsoft.Extensions.Logging;
-using System;
 using System.Net;
 using System.Text.Json;
-using System.Threading.Tasks;
+
 
 namespace AdvancedDevSample.Api.Middlewares
 {
@@ -16,11 +13,15 @@ namespace AdvancedDevSample.Api.Middlewares
     {
         private readonly RequestDelegate _next;
         private readonly ILogger<ExceptionHandlingMiddleware> _logger;
+        private static readonly JsonSerializerOptions JsonOptions = new()
+        {
+            PropertyNamingPolicy = JsonNamingPolicy.CamelCase
+        };
 
         public ExceptionHandlingMiddleware(RequestDelegate next, ILogger<ExceptionHandlingMiddleware> logger)
         {
-            _next = next;
-            _logger = logger;
+            _next = next ?? throw new ArgumentNullException(nameof(next));
+            _logger = logger ?? throw new ArgumentNullException(nameof(logger));
         }
 
         public async Task InvokeAsync(HttpContext context)
@@ -37,66 +38,55 @@ namespace AdvancedDevSample.Api.Middlewares
 
         private async Task HandleExceptionAsync(HttpContext context, Exception exception)
         {
-            _logger.LogError(exception, "Une exception non gérée s'est produite: {Message}", exception.Message);
+            LogException(exception);
 
-            var response = context.Response;
-            response.ContentType = "application/json";
+            var statusCode = DetermineStatusCode(exception);
+            var errorResponse = CreateErrorResponse(exception, statusCode);
 
-            object errorResponse;
+            await WriteJsonResponseAsync(context, statusCode, errorResponse);
+        }
 
-            switch (exception)
+        private void LogException(Exception exception)
+        {
+            _logger.LogError(exception,
+                "Exception non gérée: {ExceptionType} - {Message}",
+                exception.GetType().Name,
+                exception.Message);
+        }
+
+        private static HttpStatusCode DetermineStatusCode(Exception exception)
+        {
+            return exception switch
             {
-                case NotFoundException:
-                    response.StatusCode = (int)HttpStatusCode.NotFound;
-                    errorResponse = new
-                    {
-                        Success = false,
-                        Message = exception.Message,
-                        ExceptionType = exception.GetType().Name,
-                        Timestamp = DateTime.UtcNow
-                    };
-                    break;
+                NotFoundException => HttpStatusCode.NotFound,
+                ValidationException => HttpStatusCode.BadRequest,
+                DomainException => HttpStatusCode.BadRequest,
+                _ => HttpStatusCode.InternalServerError
+            };
+        }
 
-                case ValidationException:
-                    response.StatusCode = (int)HttpStatusCode.BadRequest;
-                    errorResponse = new
-                    {
-                        Success = false,
-                        Message = exception.Message,
-                        ExceptionType = exception.GetType().Name,
-                        Timestamp = DateTime.UtcNow
-                    };
-                    break;
+        private static object CreateErrorResponse(Exception exception, HttpStatusCode statusCode)
+        {
+            var message = statusCode == HttpStatusCode.InternalServerError
+                ? "Une erreur s'est produite lors du traitement de votre demande."
+                : exception.Message;
 
-                case DomainException:
-                    response.StatusCode = (int)HttpStatusCode.BadRequest;
-                    errorResponse = new
-                    {
-                        Success = false,
-                        Message = exception.Message,
-                        ExceptionType = exception.GetType().Name,
-                        Timestamp = DateTime.UtcNow
-                    };
-                    break;
-
-                default:
-                    response.StatusCode = (int)HttpStatusCode.InternalServerError;
-                    errorResponse = new
-                    {
-                        Success = false,
-                        Message = "Une erreur s'est produite lors du traitement de votre demande.",
-                        ExceptionType = exception.GetType().Name,
-                        Timestamp = DateTime.UtcNow
-                    };
-                    break;
-            }
-
-            var jsonResponse = JsonSerializer.Serialize(errorResponse, new JsonSerializerOptions
+            return new
             {
-                PropertyNamingPolicy = JsonNamingPolicy.CamelCase
-            });
+                Success = false,
+                Message = message,
+                ExceptionType = exception.GetType().Name,
+                Timestamp = DateTime.UtcNow
+            };
+        }
 
-            await response.WriteAsync(jsonResponse);
+        private static async Task WriteJsonResponseAsync(HttpContext context, HttpStatusCode statusCode, object errorResponse)
+        {
+            context.Response.ContentType = "application/json";
+            context.Response.StatusCode = (int)statusCode;
+
+            var jsonResponse = JsonSerializer.Serialize(errorResponse, JsonOptions);
+            await context.Response.WriteAsync(jsonResponse);
         }
     }
 }

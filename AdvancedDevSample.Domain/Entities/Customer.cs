@@ -1,4 +1,6 @@
-﻿using System;
+﻿// Customer.cs - ENTITY REFACTORISÉE
+using System;
+using System.Text.RegularExpressions;
 using AdvancedDevSample.Domain.Common;
 using AdvancedDevSample.Domain.Events;
 using AdvancedDevSample.Domain.Exceptions;
@@ -10,6 +12,10 @@ namespace AdvancedDevSample.Domain.Entities
     /// </summary>
     public class Customer : BaseEntity
     {
+        private static readonly Regex EmailRegex = new(
+            @"^[^@\s]+@[^@\s]+\.[^@\s]+$",
+            RegexOptions.Compiled | RegexOptions.IgnoreCase);
+
         private Customer()
         {
             // Constructeur privé pour EF Core
@@ -28,7 +34,7 @@ namespace AdvancedDevSample.Domain.Entities
             Id = Guid.NewGuid();
             FirstName = firstName.Trim();
             LastName = lastName.Trim();
-            Email = email.Trim().ToLower();
+            Email = NormalizeEmail(email);
             IsActive = true;
             CreatedAt = DateTime.UtcNow;
 
@@ -46,11 +52,10 @@ namespace AdvancedDevSample.Domain.Entities
         /// </summary>
         public void Activate()
         {
-            if (!IsActive)
-            {
-                IsActive = true;
-                AddDomainEvent(new CustomerActivatedEvent(Id));
-            }
+            if (IsActive) return;
+
+            IsActive = true;
+            AddDomainEvent(new CustomerActivatedEvent(Id));
         }
 
         /// <summary>
@@ -58,11 +63,10 @@ namespace AdvancedDevSample.Domain.Entities
         /// </summary>
         public void Desactivate()
         {
-            if (IsActive)
-            {
-                IsActive = false;
-                AddDomainEvent(new CustomerDeactivatedEvent(Id));
-            }
+            if (!IsActive) return;
+
+            IsActive = false;
+            AddDomainEvent(new CustomerDeactivatedEvent(Id));
         }
 
         /// <summary>
@@ -74,12 +78,12 @@ namespace AdvancedDevSample.Domain.Entities
 
             FirstName = firstName.Trim();
             LastName = lastName.Trim();
-            Email = email.Trim().ToLower();
+            Email = NormalizeEmail(email);
 
             AddDomainEvent(new CustomerUpdatedEvent(Id));
         }
 
-        private void ValidateParameters(string firstName, string lastName, string email)
+        private static void ValidateParameters(string firstName, string lastName, string email)
         {
             if (string.IsNullOrWhiteSpace(firstName))
                 throw new DomainException("Le prénom est requis");
@@ -91,11 +95,12 @@ namespace AdvancedDevSample.Domain.Entities
                 throw new DomainException("L'email est requis");
 
             if (!IsValidEmail(email))
-                throw new DomainException("L'email n'est pas valide");
+                throw new DomainException($"L'email '{email}' n'est pas valide");
         }
 
-        private bool IsValidEmail(string email)
+        private static bool IsValidEmail(string email)
         {
+<<<<<<< Updated upstream
             try
             {
                 var addr = new System.Net.Mail.MailAddress(email);
@@ -103,8 +108,42 @@ namespace AdvancedDevSample.Domain.Entities
             }
             catch
             {
+=======
+            if (string.IsNullOrWhiteSpace(email))
+>>>>>>> Stashed changes
                 return false;
-            }
+
+            email = email.Trim();
+
+            // Vérification de base avec regex
+            if (!EmailRegex.IsMatch(email))
+                return false;
+
+            // Vérifications supplémentaires
+            var parts = email.Split('@');
+            if (parts.Length != 2)
+                return false;
+
+            var localPart = parts[0];
+            var domain = parts[1];
+
+            // Vérifier la partie locale
+            if (string.IsNullOrWhiteSpace(localPart) || localPart.Length > 64)
+                return false;
+
+            // Vérifier le domaine
+            if (string.IsNullOrWhiteSpace(domain) || domain.Length > 255)
+                return false;
+
+            if (domain.StartsWith(".") || domain.EndsWith(".") || domain.Contains(".."))
+                return false;
+
+            return true;
+        }
+
+        private static string NormalizeEmail(string email)
+        {
+            return email.Trim().ToLowerInvariant();
         }
     }
 }

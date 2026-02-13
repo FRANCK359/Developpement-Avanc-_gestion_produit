@@ -1,5 +1,4 @@
 ﻿using System;
-
 namespace AdvancedDevSample.Application.DTOs
 {
     /// <summary>
@@ -13,7 +12,6 @@ namespace AdvancedDevSample.Application.DTOs
         public string FirstName { get; set; } = string.Empty;
         public string LastName { get; set; } = string.Empty;
     }
-
     /// <summary>
     /// DTO pour la connexion
     /// </summary>
@@ -22,7 +20,6 @@ namespace AdvancedDevSample.Application.DTOs
         public string Email { get; set; } = string.Empty;
         public string Password { get; set; } = string.Empty;
     }
-
     /// <summary>
     /// DTO pour la réponse d'authentification
     /// </summary>
@@ -33,7 +30,6 @@ namespace AdvancedDevSample.Application.DTOs
         public string Token { get; set; } = string.Empty;
         public UserDto? User { get; set; }
     }
-
     /// <summary>
     /// DTO pour l'utilisateur
     /// </summary>
@@ -48,7 +44,6 @@ namespace AdvancedDevSample.Application.DTOs
         public DateTime CreatedAt { get; set; }
         public DateTime? LastLoginAt { get; set; }
     }
-
     /// <summary>
     /// DTO pour le changement de mot de passe
     /// </summary>

@@ -1,7 +1,6 @@
 ﻿using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Mvc.Testing;
 using Microsoft.Extensions.DependencyInjection;
-using Microsoft.Extensions.Hosting;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.AspNetCore.Authentication;
 using AdvancedDevSample.Infrastructure.DbContext;
@@ -11,10 +10,19 @@ namespace AdvancedDevSample.Test.Integration
 {
     public class CustomWebApplicationFactory : WebApplicationFactory<Program>
     {
+<<<<<<< Updated upstream
         protected override IHost CreateHost(IHostBuilder builder)
+=======
+        private const string TestDatabaseName = "TestDatabase";
+
+        protected override void ConfigureWebHost(IWebHostBuilder builder)
+>>>>>>> Stashed changes
         {
             builder.UseEnvironment("Testing");
+            builder.ConfigureServices(ConfigureTestServices);
+        }
 
+<<<<<<< Updated upstream
             builder.ConfigureServices(services =>
             {
                 // 1. SUPPRIMER TOUS LES SERVICES EF EXISTANTS
@@ -103,6 +111,57 @@ namespace AdvancedDevSample.Test.Integration
             db.Products.Add(product);
 
             db.SaveChanges();
+=======
+        private void ConfigureTestServices(IServiceCollection services)
+        {
+            ReplaceProductionDatabaseWithInMemory(services);
+            ReplaceProductionAuthenticationWithTest(services);
+            InitializeTestDatabase(services);
+        }
+
+        private void ReplaceProductionDatabaseWithInMemory(IServiceCollection services)
+        {
+            RemoveService<DbContextOptions<AdvancedDevSampleDbContext>>(services);
+
+            services.AddDbContext<AdvancedDevSampleDbContext>(options =>
+                options.UseInMemoryDatabase(TestDatabaseName));
+        }
+
+        private void ReplaceProductionAuthenticationWithTest(IServiceCollection services)
+        {
+            RemoveService<IAuthenticationService>(services);
+
+            services.AddAuthentication(ConfigureTestAuthentication)
+                .AddScheme<AuthenticationSchemeOptions, TestAuthHandler>(
+                    TestAuthHandler.AuthenticationScheme,
+                    _ => { });
+        }
+
+        private void ConfigureTestAuthentication(AuthenticationOptions options)
+        {
+            options.DefaultAuthenticateScheme = TestAuthHandler.AuthenticationScheme;
+            options.DefaultChallengeScheme = TestAuthHandler.AuthenticationScheme;
+            options.DefaultForbidScheme = TestAuthHandler.AuthenticationScheme;
+        }
+
+        private void InitializeTestDatabase(IServiceCollection services)
+        {
+            using var serviceProvider = services.BuildServiceProvider();
+            using var scope = serviceProvider.CreateScope();
+
+            var dbContext = scope.ServiceProvider.GetRequiredService<AdvancedDevSampleDbContext>();
+            dbContext.Database.EnsureDeleted();
+            dbContext.Database.EnsureCreated();
+        }
+
+        private void RemoveService<TService>(IServiceCollection services)
+        {
+            var descriptor = services.SingleOrDefault(d => d.ServiceType == typeof(TService));
+            if (descriptor != null)
+            {
+                services.Remove(descriptor);
+            }
+>>>>>>> Stashed changes
         }
     }
 }

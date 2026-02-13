@@ -1,6 +1,5 @@
 ﻿using System;
 using System.IdentityModel.Tokens.Jwt;
-using System.Linq;
 using System.Security.Claims;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Authorization;
@@ -22,9 +21,7 @@ namespace AdvancedDevSample.Api.Controllers
         private readonly IAuthService _authService;
         private readonly ILogger<AuthController> _logger;
 
-        public AuthController(
-            IAuthService authService,
-            ILogger<AuthController> logger)
+        public AuthController(IAuthService authService, ILogger<AuthController> logger)
         {
             _authService = authService ?? throw new ArgumentNullException(nameof(authService));
             _logger = logger ?? throw new ArgumentNullException(nameof(logger));
@@ -40,6 +37,7 @@ namespace AdvancedDevSample.Api.Controllers
         {
             _logger.LogInformation("Requête d'inscription pour: {Email}", registerDto.Email);
 
+<<<<<<< Updated upstream
             if (!ModelState.IsValid)
             {
                 return BadRequest(ModelState);
@@ -47,6 +45,18 @@ namespace AdvancedDevSample.Api.Controllers
 
             var response = await _authService.RegisterAsync(registerDto);
             return Ok(response);
+=======
+            try
+            {
+                var response = await _authService.RegisterAsync(registerDto);
+                return Ok(response);
+            }
+            catch (ValidationException ex)
+            {
+                _logger.LogWarning(ex, "Échec d'inscription pour {Email}", registerDto.Email);
+                return BadRequest(new { message = ex.Message });
+            }
+>>>>>>> Stashed changes
         }
 
         /// <summary>
@@ -59,6 +69,7 @@ namespace AdvancedDevSample.Api.Controllers
         {
             _logger.LogInformation("Requête de connexion pour: {Email}", loginDto.Email);
 
+<<<<<<< Updated upstream
             if (!ModelState.IsValid)
             {
                 return BadRequest(ModelState);
@@ -66,6 +77,18 @@ namespace AdvancedDevSample.Api.Controllers
 
             var response = await _authService.LoginAsync(loginDto);
             return Ok(response);
+=======
+            try
+            {
+                var response = await _authService.LoginAsync(loginDto);
+                return Ok(response);
+            }
+            catch (ValidationException ex)
+            {
+                _logger.LogWarning(ex, "Échec de connexion pour {Email}", loginDto.Email);
+                return BadRequest(new { message = ex.Message });
+            }
+>>>>>>> Stashed changes
         }
 
         /// <summary>
@@ -77,8 +100,7 @@ namespace AdvancedDevSample.Api.Controllers
         [ProducesResponseType(StatusCodes.Status401Unauthorized)]
         public async Task<ActionResult<UserDto>> GetCurrentUser()
         {
-            var email = User.FindFirst(ClaimTypes.Email)?.Value
-                ?? User.FindFirst(JwtRegisteredClaimNames.Email)?.Value;
+            var email = GetUserEmailFromClaims();
 
             if (string.IsNullOrEmpty(email))
             {
@@ -101,9 +123,20 @@ namespace AdvancedDevSample.Api.Controllers
             return Ok(new
             {
                 Message = "Authentification réussie",
-                Email = User.FindFirst(ClaimTypes.Email)?.Value ?? User.FindFirst(JwtRegisteredClaimNames.Email)?.Value,
-                Roles = User.FindAll(ClaimTypes.Role).Select(c => c.Value)
+                Email = GetUserEmailFromClaims(),
+                Roles = GetUserRoles()
             });
+        }
+
+        private string? GetUserEmailFromClaims()
+        {
+            return User.FindFirst(ClaimTypes.Email)?.Value
+                ?? User.FindFirst(JwtRegisteredClaimNames.Email)?.Value;
+        }
+
+        private IEnumerable<string> GetUserRoles()
+        {
+            return User.FindAll(ClaimTypes.Role).Select(c => c.Value);
         }
     }
 }
