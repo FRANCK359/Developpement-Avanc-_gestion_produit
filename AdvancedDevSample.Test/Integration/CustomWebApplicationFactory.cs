@@ -6,6 +6,7 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.AspNetCore.Authentication;
 using AdvancedDevSample.Infrastructure.DbContext;
 using AdvancedDevSample.Api;
+using AdvancedDevSample.Domain.Entities; 
 using System.Linq;
 
 namespace AdvancedDevSample.Test.Integration
@@ -69,25 +70,24 @@ namespace AdvancedDevSample.Test.Integration
         protected override void ConfigureWebHost(IWebHostBuilder builder)
         {
             builder.UseEnvironment("Testing");
-            // Ne rien mettre ici
         }
 
         private void InitializeTestData(AdvancedDevSampleDbContext db)
         {
             // Fournisseur de test
-            var supplier = new Domain.Entities.Supplier("Fournisseur Test", "contact@test.com");
+            var supplier = new Supplier("Fournisseur Test", "contact@test.com");
             db.Suppliers.Add(supplier);
 
             // Client de test
-            var customer = new Domain.Entities.Customer("Client", "Test", "client.test@example.com");
+            var customer = new Customer("Client", "Test", "client.test@example.com");
             db.Customers.Add(customer);
 
             // Produit de test
-            var product = new Domain.Entities.Product("Produit Test", "Description du produit test", 99.99m, supplier.Id);
+            var product = new Product("Produit Test", "Description du produit test", 99.99m, supplier.Id);
             db.Products.Add(product);
 
             // UTILISATEUR DE TEST POUR AUTH
-            var user = new Domain.Entities.User(
+            var user = new User(
                 TestAuthHandler.TestUserEmail,
                 BCrypt.Net.BCrypt.HashPassword("Test123!"),
                 "Test",
